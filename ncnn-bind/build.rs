@@ -48,7 +48,7 @@ fn build() -> io::Result<()> {
             //         .to_str()
             //         .unwrap(),
             // )
-            .cflag("-std=c++14")
+            .cflag("-std=c++17")
             .build();
     } else {
         dst = Config::new(ncnndir())
@@ -63,7 +63,7 @@ fn build() -> io::Result<()> {
             //         .to_str()
             //         .unwrap(),
             // )
-            .cflag("-std=c++14")
+            .cflag("-std=c++17")
             .build();
     }
     println!("cargo:rustc-link-search=native={}", dst.display());
