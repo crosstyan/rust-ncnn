@@ -1,11 +1,12 @@
 use crate::allocator::Allocator as ncnn_Allocator;
 use ncnn_bind::*;
-use std::{os::raw::c_void, ops::Index};
+use std::{ops::Index, os::raw::c_void};
 
 pub struct Mat {
     ptr: ncnn_mat_t,
 }
 
+// https://github.com/Tencent/ncnn/blob/5eb56b2ea5a99fb5a3d6f3669ef1743b73a9a53e/src/mat.h#L224
 impl Mat {
     pub fn get(&self) -> ncnn_mat_t {
         self.ptr
@@ -53,6 +54,44 @@ impl Mat {
         Mat { ptr }
     }
 
+    // https://ncnn.docsforge.com/master/api/ncnn/Mat/from_pixels_resize/
+    // https://ncnn.docsforge.com/master/api/ncnn_mat_from_pixels_resize/
+    // https://github.com/Tencent/ncnn/blob/13a9533984467890a77acf5e26cc8d01ed157878/src/c_api.cpp#L365
+    // not sure what the stride is
+    // model_size 模型输入尺寸大小 (should be 352*352)
+    pub fn from_pixels_resize(
+        pixels: &[u8],
+        pixel_type: i32,
+        img_size: (i32, i32),
+        stride: i32,
+        model_size: (i32, i32),
+        alloc: &ncnn_Allocator,
+    ) -> Mat {
+        let (w, h) = img_size;
+        let (model_w, model_h) = model_size;
+        unsafe {
+            let ptr = ncnn_mat_from_pixels_resize(
+                pixels.as_ptr(),
+                pixel_type,
+                w,
+                h,
+                stride,
+                model_w,
+                model_h,
+                alloc.get(),
+            );
+            Mat { ptr }
+        }
+    }
+
+    // https://github.com/Tencent/ncnn/blob/13a9533984467890a77acf5e26cc8d01ed157878/src/c_api.cpp#L392
+    pub fn substract_mean_normalize(&mut self, mean_vals: &[f32], norm_vals: &[f32]) {
+        // https://stackoverflow.com/questions/39224904/how-to-expose-a-rust-vect-to-ffi
+        unsafe {
+            ncnn_mat_substract_mean_normalize(self.ptr, mean_vals.as_ptr(), norm_vals.as_ptr())
+        };
+    }
+
     // setter
     pub fn fill(&self, value: f32) {
         unsafe { ncnn_mat_fill_float(self.ptr, value) };
@@ -85,7 +124,6 @@ impl Mat {
     pub fn get_data(&self) -> *mut ::std::os::raw::c_void {
         unsafe { ncnn_mat_get_data(self.ptr) }
     }
-
 
     // debug
     pub fn print(&self) {
