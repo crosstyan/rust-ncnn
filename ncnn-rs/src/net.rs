@@ -70,6 +70,7 @@ impl Extractor {
         unsafe { ncnn_extractor_set_option(self.ptr, opt.get()) };
     }
 
+    // won't mutate mat
     pub fn input(&self, name: &str, mat: &crate::mat::Mat) -> i32 {
         let c_str = CString::new(name).unwrap();
         let c_ptr = c_str.as_ptr() as *const c_char;
@@ -78,7 +79,8 @@ impl Extractor {
         stat
     }
 
-    pub fn extract(&self, name: &str, mat: &crate::mat::Mat) -> i32 {
+    // this method will mutate the mat
+    pub fn extract(&self, name: &str, mat: &mut crate::mat::Mat) -> i32 {
         let c_str = CString::new(name).unwrap();
         let c_ptr = c_str.as_ptr() as *const c_char;
 

@@ -86,6 +86,16 @@ impl Mat {
         unsafe { ncnn_mat_get_data(self.ptr) }
     }
 
+    // https://github.com/Tencent/ncnn/blob/5eb56b2ea5a99fb5a3d6f3669ef1743b73a9a53e/src/mat.h#L1343
+    // https://stackoverflow.com/questions/24759028/how-should-you-do-pointer-arithmetic-in-rust
+    pub fn index(&self, idx: isize) -> f32 {
+        let p = self.get_data() as *mut f32;
+        unsafe {
+            let p = p.offset(idx);
+            *p
+        }
+    }
+
     // debug
     pub fn print(&self) {
         println!(

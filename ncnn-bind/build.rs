@@ -22,8 +22,8 @@ fn fetch() -> io::Result<()> {
         .arg("clone")
         .arg("--depth=1")
         .arg("-b")
-        .arg("rust-ncnn")
-        .arg("https://github.com/tpoisonooo/ncnn")
+        .arg("master")
+        .arg("https://github.com/Tencent/ncnn")
         .arg(&clone_dest_dir)
         .status()?;
 
