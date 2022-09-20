@@ -40,6 +40,24 @@ impl Net {
         ret
     }
 
+    pub fn load_param_memory(&self, mem: &[u8]){
+        unsafe {
+            ncnn_net_load_param_memory(self.ptr, mem.as_ptr());
+        }
+    }
+
+    pub fn load_model_memory(&self, mem: &[u8]){
+        unsafe {
+            ncnn_net_load_model_memory(self.ptr, mem.as_ptr());
+        }
+    }
+
+    pub fn load_param_bin_memory(&self, mem: &[u8]){
+        unsafe {
+            ncnn_net_load_param_bin_memory(self.ptr, mem.as_ptr());
+        }
+    }
+
     pub fn load_model_datareader(&self, dr: &DataReader) -> i32 {
         unsafe { ncnn_net_load_model_datareader(self.ptr, dr.get()) }
     }
@@ -82,9 +100,10 @@ impl Extractor {
     // this method will mutate the mat
     pub fn extract(&self, name: &str, mat: &mut crate::mat::Mat) -> i32 {
         let c_str = CString::new(name).unwrap();
-        let c_ptr = c_str.as_ptr() as *const c_char;
+        let c_ptr = c_str.as_ptr();
+        let ptr = mat.get_mut();
 
-        let stat = unsafe { ncnn_extractor_extract(self.ptr, c_ptr, &mut mat.get()) };
+        let stat = unsafe { ncnn_extractor_extract(self.ptr, c_ptr, ptr) };
         stat
     }
 }

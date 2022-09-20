@@ -23,6 +23,7 @@ fn fetch() -> io::Result<()> {
         .arg("--depth=1")
         .arg("-b")
         .arg("master")
+        // .arg("20220729")
         .arg("https://github.com/Tencent/ncnn")
         .arg(&clone_dest_dir)
         .status()?;

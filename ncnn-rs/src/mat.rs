@@ -11,6 +11,9 @@ impl Mat {
     pub fn get(&self) -> ncnn_mat_t {
         self.ptr
     }
+    pub fn get_mut(&mut self) -> &mut ncnn_mat_t {
+        &mut self.ptr
+    }
 
     pub fn new() -> Mat {
         let ptr = unsafe { ncnn_mat_create() };
@@ -57,8 +60,6 @@ impl Mat {
     // https://ncnn.docsforge.com/master/api/ncnn/Mat/from_pixels_resize/
     // https://ncnn.docsforge.com/master/api/ncnn_mat_from_pixels_resize/
     // https://github.com/Tencent/ncnn/blob/13a9533984467890a77acf5e26cc8d01ed157878/src/c_api.cpp#L365
-    // not sure what the stride is
-    // model_size 模型输入尺寸大小 (should be 352*352)
     pub fn from_pixels_resize(
         pixels: &[u8],
         pixel_type: i32,
@@ -128,7 +129,7 @@ impl Mat {
     // debug
     pub fn print(&self) {
         println!(
-            "dims {}, c {}, h {}, w {}, elemsize {}",
+            "dims: {}, c: {}, h: {}, w: {}, elemsize: {}",
             self.get_dims(),
             self.get_c(),
             self.get_h(),
@@ -140,14 +141,14 @@ impl Mat {
 
 // TODO: generic indexing?
 // TODO: index return value?
-impl Index<i32> for Mat {
+impl Index<isize> for Mat {
     type Output = f32;
     // https://github.com/Tencent/ncnn/blob/5eb56b2ea5a99fb5a3d6f3669ef1743b73a9a53e/src/mat.h#L1343
     // https://stackoverflow.com/questions/24759028/how-should-you-do-pointer-arithmetic-in-rust
-    fn index(&self, idx: i32) -> &Self::Output {
+    fn index(&self, idx: isize) -> &Self::Output {
         let p = self.get_data() as *mut f32;
         unsafe {
-            let p = p.offset(idx as isize);
+            let p = p.offset(idx);
             p.as_ref().unwrap()
         }
     }
