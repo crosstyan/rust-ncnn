@@ -95,22 +95,28 @@ impl Extractor {
     }
 
     // won't mutate mat
-    pub fn input(&self, name: &str, mat: &crate::mat::Mat) -> i32 {
+    pub fn input(&self, name: &str, mat: &crate::mat::Mat) -> Result<(), i32> {
         let c_str = CString::new(name).unwrap();
         let c_ptr = c_str.as_ptr() as *const c_char;
 
         let stat = unsafe { ncnn_extractor_input(self.ptr, c_ptr, mat.get()) };
-        stat
+        match stat {
+            0 => Ok(()),
+            _ => Err(stat)
+        }
     }
 
     // this method will mutate the mat
-    pub fn extract(&self, name: &str, mat: &mut crate::mat::Mat) -> i32 {
+    pub fn extract(&self, name: &str, mat: &mut crate::mat::Mat) -> Result<(), i32> {
         let c_str = CString::new(name).unwrap();
         let c_ptr = c_str.as_ptr();
         let ptr = mat.get_mut();
 
         let stat = unsafe { ncnn_extractor_extract(self.ptr, c_ptr, ptr) };
-        stat
+        match stat {
+            0 => Ok(()),
+            _ => Err(stat)
+        }
     }
 }
 
