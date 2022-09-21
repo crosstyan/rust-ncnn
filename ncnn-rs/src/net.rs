@@ -26,18 +26,24 @@ impl Net {
         }
     }
 
-    pub fn load_param(&self, path: &str) -> i32 {
+    pub fn load_param(&self, path: &str) -> Result<(), i32> {
         let c_str = CString::new(path).unwrap();
         let c_ptr = c_str.as_ptr() as *const c_char;
         let ret = unsafe { ncnn_net_load_param(self.ptr, c_ptr) };
-        ret
+        match ret {
+            0 => Ok(()),
+            _ => Err(ret),
+        }
     }
 
-    pub fn load_model(&self, path: &str) -> i32 {
+    pub fn load_model(&self, path: &str) -> Result<(), i32> {
         let c_str = CString::new(path).unwrap();
         let c_ptr = c_str.as_ptr() as *const c_char;
         let ret = unsafe { ncnn_net_load_model(self.ptr, c_ptr) };
-        ret
+        match ret {
+            0 => Ok(()),
+            _ => Err(ret),
+        }
     }
 
     pub fn load_param_memory(&self, mem: &[u8]){
