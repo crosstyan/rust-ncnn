@@ -5,7 +5,6 @@ authors = ["tpoisonooo <khj.application@aliyun.com>"]
 edition = "2021"
 description = "ncnn Rust binding"
 license = "Apache-2.0"
-license-file = "LICENSE.txt"
 homepage = "https://github.com/tpoisonooo/rust-ncnn"
 repository = "https://github.com/tpoisonooo/rust-ncnn"
 keywords = ["binding", "ncnn"]
@@ -17,4 +16,4 @@ libc = "0.2"
 
 [build-dependencies]
 cmake = "0.1"
-bindgen    = { version = "0.60.1", default-features = false, features = ["runtime"] }
+bindgen    = { version = "0.64", default-features = false, features = ["runtime"] }
