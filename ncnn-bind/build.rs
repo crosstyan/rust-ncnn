@@ -17,7 +17,7 @@ fn output_dir() -> PathBuf {
 fn ncnn_src_dir() -> PathBuf {
     // I'm using master
     let master_dir = "ncnn-master";
-    let tag_dir = format!("ncnn-src-{}", ncnn_tag());
+    // let tag_dir = format!("ncnn-src-{}", ncnn_tag());
     output_dir().join(master_dir)
 }
 
