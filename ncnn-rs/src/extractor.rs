@@ -30,7 +30,7 @@ impl<'a> Extractor<'a> {
     }
 
     /// Runs network inferrence and returns output tensor by a given name.
-    pub fn extract(self, name: &str, mat: &mut crate::mat::Mat) -> anyhow::Result<()> {
+    pub fn extract(&self, name: &str, mat: &mut crate::mat::Mat) -> anyhow::Result<()> {
         let c_str = CString::new(name).unwrap();
         if unsafe { ncnn_extractor_extract(self.ptr, c_str.as_ptr(), mat.as_mut_ptr()) } != 0 {
             anyhow::bail!("Error running extract on layer `{}`", name);

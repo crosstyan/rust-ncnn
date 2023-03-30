@@ -2,6 +2,8 @@ use ncnn_rs::DataReader;
 use ncnn_rs::Mat;
 use ncnn_rs::Net;
 use ncnn_rs::Option as ncnn_option;
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::time;
 
 fn param_path() -> std::path::PathBuf {
@@ -13,25 +15,32 @@ fn benchmark(name: &str, mut mat_in: Mat, opt: &ncnn_option, out: &str) -> anyho
     let mut mat_out = Mat::new();
     mat_in.fill(1.0 as f32);
 
-    let mut net = Net::new();
+    let mut net = Rc::new(RefCell::new(Net::new()));
     let path = param_path().join("../params").join(name);
     if !path.exists() {
         anyhow::bail!("param not found: {:?}", path)
     }
 
-    net.set_option(opt);
-    net.load_param(path.to_str().unwrap())?;
-    let dr = DataReader::empty();
-    net.load_model_datareader(&dr)?;
+    {
+        let mut net = net.borrow_mut();
+        net.set_option(opt);
+        net.load_param(path.to_str().unwrap())?;
+        let dr = DataReader::empty();
+        net.load_model_datareader(&dr)?;
+    }
 
     // warmup
-    let mut ex_warmup = net.create_extractor();
-    ex_warmup.input("data", &mat_in)?;
-    ex_warmup.extract(out, &mut mat_out)?;
+    {
+        let mut net = net.borrow_mut();
+        let mut ex_warmup = net.create_extractor();
+        ex_warmup.input("data", &mat_in)?;
+        ex_warmup.extract(out, &mut mat_out)?;
+    }
 
     let loop_cnt = 10;
     let now = time::Instant::now();
     for _ in 0..loop_cnt {
+        let mut net = net.borrow_mut();
         let mut ex = net.create_extractor();
         ex.input("data", &mat_in)?;
         ex.extract(out, &mut mat_out)?;

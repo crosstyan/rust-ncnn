@@ -1,9 +1,8 @@
 use crate::allocator::Allocator;
-use crate::matview::MatView;
 use core::fmt;
 use ncnn_bind::*;
+use std::ops::{Index, IndexMut, RangeTo};
 use std::os::raw::c_void;
-use std::ops::{Index, IndexMut};
 
 pub enum MatPixelType {
     BGR,
@@ -309,16 +308,17 @@ impl Mat {
     pub unsafe fn as_mut_ptr(&mut self) -> *mut ncnn_mat_t {
         &mut self.ptr
     }
-    /// ncnn get channel data
-    /// 
-    /// I don't know how to express binding
-    /// lifetime with `self`. Just be careful!
-    pub unsafe fn channel<'a>(&'a self, c: i32) -> MatView {
-        let ptr = ncnn_mat_get_channel_data(self.ptr, c) as *mut __ncnn_mat_t;
-        MatView::from_ptr(ptr)
-    }
 
-    pub unsafe fn channel_slice(&self, c: i32) -> &[f32] {
+    /// The impl of C API has used `data` so you can't retrieve the Matrix
+    /// 
+    /// See also [c_api.cpp](https://github.com/Tencent/ncnn/blob/a961ab992e2e4bf1cb950423bd7c2e2d40eb4ea2/src/c_api.cpp#LL375-L378C2).
+    /// 
+    /// ```c
+    /// void* ncnn_mat_get_channel_data(const ncnn_mat_t mat, int c){
+    ///    return ((const Mat*)mat)->channel(c).data;
+    /// }
+    /// ```
+    pub unsafe fn channel_data(&self, c: i32) -> &[f32] {
         let ptr = ncnn_mat_get_channel_data(self.ptr, c) as *mut f32;
         // let len = self.w() as usize * self.h() as usize;
         std::slice::from_raw_parts_mut(ptr, std::usize::MAX)
@@ -326,6 +326,22 @@ impl Mat {
 
     pub unsafe fn set_ptr(&mut self, ptr: ncnn_mat_t) {
         self.ptr = ptr;
+    }
+
+    pub fn isize_index(&self, idx: isize) -> &f32 {
+        let p = self.data() as *mut f32;
+        unsafe {
+            let p = p.offset(idx as isize);
+            p.as_ref().unwrap()
+        }
+    }
+
+    pub fn isize_index_mut(&mut self, idx:isize) -> &mut f32{
+        let p = self.data() as *mut f32;
+        unsafe {
+            let p = p.offset(idx as isize);
+            p.as_mut().unwrap()
+        }
     }
 }
 
@@ -351,26 +367,24 @@ impl fmt::Debug for Mat {
     }
 }
 
-// TODO: generic indexing?
-// TODO: index return value?
-impl Index<isize> for Mat {
+impl Index<usize> for Mat {
     type Output = f32;
     // https://github.com/Tencent/ncnn/blob/5eb56b2ea5a99fb5a3d6f3669ef1743b73a9a53e/src/mat.h#L1343
     // https://stackoverflow.com/questions/24759028/how-should-you-do-pointer-arithmetic-in-rust
-    fn index(&self, idx: isize) -> &Self::Output {
+    fn index(&self, idx: usize) -> &Self::Output {
         let p = self.data() as *mut f32;
         unsafe {
-            let p = p.offset(idx);
+            let p = p.offset(idx as isize);
             p.as_ref().unwrap()
         }
     }
 }
 
-impl IndexMut<isize> for Mat {
-    fn index_mut(&mut self, idx: isize) -> &mut Self::Output {
+impl IndexMut<usize> for Mat {
+    fn index_mut(&mut self, idx: usize) -> &mut Self::Output {
         let p = self.data() as *mut f32;
         unsafe {
-            let p = p.offset(idx);
+            let p = p.offset(idx as isize);
             p.as_mut().unwrap()
         }
     }
