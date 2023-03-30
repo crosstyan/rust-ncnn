@@ -1,8 +1,9 @@
 use crate::allocator::Allocator;
+use crate::matview::MatView;
 use core::fmt;
 use ncnn_bind::*;
 use std::os::raw::c_void;
-use std::ops::Index;
+use std::ops::{Index, IndexMut};
 
 pub enum MatPixelType {
     BGR,
@@ -297,12 +298,34 @@ impl Mat {
         unsafe { ncnn_mat_get_data(self.ptr) }
     }
 
-    pub(crate) fn ptr(&self) -> ncnn_mat_t {
+    pub unsafe fn as_ptr(&self) -> ncnn_mat_t {
         self.ptr
     }
 
-    pub(crate) fn mut_ptr(&mut self) -> *mut ncnn_mat_t {
+    pub unsafe fn from_ptr(ptr: ncnn_mat_t) -> Self {
+        Self { ptr: ptr }
+    }
+
+    pub unsafe fn as_mut_ptr(&mut self) -> *mut ncnn_mat_t {
         &mut self.ptr
+    }
+    /// ncnn get channel data
+    /// 
+    /// I don't know how to express binding
+    /// lifetime with `self`. Just be careful!
+    pub unsafe fn channel<'a>(&'a self, c: i32) -> MatView {
+        let ptr = ncnn_mat_get_channel_data(self.ptr, c) as *mut __ncnn_mat_t;
+        MatView::from_ptr(ptr)
+    }
+
+    pub unsafe fn channel_slice(&self, c: i32) -> &[f32] {
+        let ptr = ncnn_mat_get_channel_data(self.ptr, c) as *mut f32;
+        // let len = self.w() as usize * self.h() as usize;
+        std::slice::from_raw_parts_mut(ptr, std::usize::MAX)
+    }
+
+    pub unsafe fn set_ptr(&mut self, ptr: ncnn_mat_t) {
+        self.ptr = ptr;
     }
 }
 
@@ -339,6 +362,16 @@ impl Index<isize> for Mat {
         unsafe {
             let p = p.offset(idx);
             p.as_ref().unwrap()
+        }
+    }
+}
+
+impl IndexMut<isize> for Mat {
+    fn index_mut(&mut self, idx: isize) -> &mut Self::Output {
+        let p = self.data() as *mut f32;
+        unsafe {
+            let p = p.offset(idx);
+            p.as_mut().unwrap()
         }
     }
 }
