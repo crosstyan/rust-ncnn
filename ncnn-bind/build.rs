@@ -8,8 +8,6 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::str;
 
-const DEFAULT_NCNN_TAG: &'static str = "20220729";
-
 fn output_dir() -> PathBuf {
     PathBuf::from(env::var("OUT_DIR").unwrap())
 }
@@ -21,7 +19,8 @@ fn ncnn_src_dir() -> PathBuf {
     output_dir().join(master_dir)
 }
 
-fn ncnn_tag() -> String {
+fn _ncnn_tag() -> String {
+    const DEFAULT_NCNN_TAG: &'static str = "20220729";
     env::var("NCNN_TAG").unwrap_or(DEFAULT_NCNN_TAG.to_string())
 }
 
@@ -122,30 +121,39 @@ fn link_vulkan() {
 }
 
 fn main() {
-    println!("cargo:rerun-if-env-changed=NCNN_DIR");
-    println!("cargo:rerun-if-env-changed=NCNN_TAG");
+    let include_paths: Vec<PathBuf>;
+    if cfg!(feature = "build") {
+        println!("cargo:rerun-if-env-changed=NCNN_DIR");
+        println!("cargo:rerun-if-env-changed=NCNN_TAG");
 
-    let include_paths: Vec<PathBuf> = if let Ok(ncnn_dir) = env::var("NCNN_DIR") {
-        // use prebuild ncnn dir
-        let dir = PathBuf::from(ncnn_dir);
-        println!(
-            "cargo:rustc-link-search=native={}",
-            dir.join("lib").to_string_lossy()
-        );
+        include_paths = if let Ok(ncnn_dir) = env::var("NCNN_DIR") {
+            // use prebuild ncnn dir
+            let dir = PathBuf::from(ncnn_dir);
+            println!(
+                "cargo:rustc-link-search=native={}",
+                dir.join("lib").to_string_lossy()
+            );
+            vec![dir.join("include").join("ncnn")]
+        } else {
+            // fetch from github and build
+            fetch().unwrap();
+            build().unwrap();
 
-        vec![dir.join("include").join("ncnn")]
+            println!(
+                "cargo:rustc-link-search=native={}",
+                output_dir().join("lib").to_string_lossy()
+            );
+
+            vec![output_dir().join("include").join("ncnn")]
+        };
     } else {
-        // fetch from github and build
-        fetch().unwrap();
-        build().unwrap();
-
-        println!(
-            "cargo:rustc-link-search=native={}",
-            output_dir().join("lib").to_string_lossy()
-        );
-
-        vec![output_dir().join("include").join("ncnn")]
-    };
+        // how could Windows users find ncnn?
+        // I don't care!
+        include_paths = vec![
+            PathBuf::from("/usr/include/ncnn"),
+            PathBuf::from("/usr/local/include/ncnn"),
+        ];
+    }
 
     if use_dynamic_linking() {
         println!("cargo:rustc-link-lib=dylib=ncnn");

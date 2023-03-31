@@ -339,10 +339,15 @@ impl Mat {
     ///    return ((const Mat*)mat)->channel(c).data;
     /// }
     /// ```
-    pub unsafe fn channel_data(&self, c: i32) -> &[f32] {
+    pub unsafe fn channel_data_mut(&self, c: i32) -> &[f32] {
         let ptr = ncnn_mat_get_channel_data(self.ptr, c) as *mut f32;
-        // let len = self.w() as usize * self.h() as usize;
-        std::slice::from_raw_parts_mut(ptr, std::usize::MAX)
+        let len = self.cstep();
+        std::slice::from_raw_parts_mut(ptr, len as usize)
+    }
+    pub unsafe fn channel_data(&self, c: i32) -> &[f32] {
+        let ptr = ncnn_mat_get_channel_data(self.ptr, c) as *const f32;
+        let len = self.cstep();
+        std::slice::from_raw_parts(ptr, len as usize)
     }
 
     pub unsafe fn set_ptr(&mut self, ptr: ncnn_mat_t) {

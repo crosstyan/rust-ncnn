@@ -16,6 +16,8 @@ static = []
 dynamic = []
 # Enable vulkan backend
 vulkan = []
+# Fetch ncnn source code and build it
+build = []
 
 [dependencies]
 libc = "0.2"
