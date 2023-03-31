@@ -339,7 +339,7 @@ impl Mat {
     ///    return ((const Mat*)mat)->channel(c).data;
     /// }
     /// ```
-    pub fn channel_data<T:Sized>(&self, c: i32) -> &[T] {
+    pub fn channel_data<T: Sized>(&self, c: i32) -> &[T] {
         unsafe {
             let ptr = ncnn_mat_get_channel_data(self.ptr, c) as *mut T;
             let len = self.cstep();
@@ -351,6 +351,15 @@ impl Mat {
 
     pub unsafe fn set_ptr(&mut self, ptr: ncnn_mat_t) {
         self.ptr = ptr;
+    }
+
+    /// ```c
+    /// NCNN_FORCEINLINE size_t Mat::total() const {
+    ///  return cstep * c;
+    /// }
+    /// ```
+    pub fn total(&self) -> usize{
+        (self.cstep() * self.c() as u64) as usize
     }
 
     pub fn isize_index_mut(&mut self, idx: isize) -> &mut f32 {
@@ -369,19 +378,17 @@ impl Mat {
         }
     }
 
-    pub fn as_slice_mut<T:Sized>(&mut self) -> &mut [T] {
+    pub fn as_slice_mut<T: Sized>(&mut self) -> &mut [T] {
         let p = self.data() as *mut T;
-        assert!(self.elemsize() % self.elempack() as u64 == 0);
         assert!(self.elemsize() as usize == std::mem::size_of::<T>());
-        let len = self.elemsize() / self.elempack() as u64;
+        let len = self.total();
         unsafe { std::slice::from_raw_parts_mut(p, len as usize) }
     }
 
-    pub fn as_slice<T:Sized>(&self) -> &[T] {
+    pub fn as_slice<T: Sized>(&self) -> &[T] {
         let p = self.data() as *mut T;
-        assert!(self.elemsize() % self.elempack() as u64 == 0);
         assert!(self.elemsize() as usize == std::mem::size_of::<T>());
-        let len = self.elemsize() / self.elempack() as u64;
+        let len = self.total();
         unsafe { std::slice::from_raw_parts(p, len as usize) }
     }
 }
