@@ -343,6 +343,7 @@ impl Mat {
         unsafe {
             let ptr = ncnn_mat_get_channel_data(self.ptr, c) as *mut T;
             let len = self.cstep();
+            assert!(ptr != core::ptr::null_mut());
             assert!(self.elemsize() as usize == std::mem::size_of::<T>());
             std::slice::from_raw_parts_mut(ptr, len as usize)
         }
