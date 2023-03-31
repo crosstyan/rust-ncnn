@@ -339,11 +339,13 @@ impl Mat {
     ///    return ((const Mat*)mat)->channel(c).data;
     /// }
     /// ```
-    pub unsafe fn channel_data<T:Sized>(&self, c: i32) -> &[T] {
-        let ptr = ncnn_mat_get_channel_data(self.ptr, c) as *mut T;
-        let len = self.cstep();
-        assert!(self.elemsize() as usize == std::mem::size_of::<T>());
-        std::slice::from_raw_parts_mut(ptr, len as usize)
+    pub fn channel_data<T:Sized>(&self, c: i32) -> &[T] {
+        unsafe {
+            let ptr = ncnn_mat_get_channel_data(self.ptr, c) as *mut T;
+            let len = self.cstep();
+            assert!(self.elemsize() as usize == std::mem::size_of::<T>());
+            std::slice::from_raw_parts_mut(ptr, len as usize)
+        }
     }
 
     pub unsafe fn set_ptr(&mut self, ptr: ncnn_mat_t) {
