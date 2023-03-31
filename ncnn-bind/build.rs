@@ -159,14 +159,12 @@ fn main() {
 
     // have to link stdc++ explicitly
     // and HAVE to be after ncnn
-    // `openmp-sys` could be helpful as well
+    // `openmp-sys` is needed to link OpenMP
     if use_dynamic_linking() {
         println!("cargo:rustc-link-lib=dylib=ncnn");
-        println!("cargo:rustc-link-lib=dylib=gomp");
         println!("cargo:rustc-link-lib=dylib=stdc++");
     } else {
         println!("cargo:rustc-link-lib=static=ncnn");
-        println!("cargo:rustc-link-lib=static=gomp");
         println!("cargo:rustc-link-lib=static=stdc++");
     }
 
