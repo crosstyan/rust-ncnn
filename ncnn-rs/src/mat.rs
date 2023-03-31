@@ -330,7 +330,6 @@ impl Mat {
     }
 
     /// The impl of C API has used `data` so you can't retrieve the Matrix.
-    /// Note that the size of slice is unknown so don't trust `len()`
     ///
     /// See also [c_api.cpp](https://github.com/Tencent/ncnn/blob/a961ab992e2e4bf1cb950423bd7c2e2d40eb4ea2/src/c_api.cpp#LL375-L378C2).
     ///
