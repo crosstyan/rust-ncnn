@@ -13,7 +13,17 @@ pub enum MatPixelType {
 }
 
 impl MatPixelType {
-    fn to_int(&self) -> i32 {
+    pub fn from_int(i: i32) -> Option<Self> {
+        match i as u32 {
+            NCNN_MAT_PIXEL_BGR => Some(MatPixelType::BGR),
+            NCNN_MAT_PIXEL_BGRA => Some(MatPixelType::BGRA),
+            NCNN_MAT_PIXEL_GRAY => Some(MatPixelType::GRAY),
+            NCNN_MAT_PIXEL_RGB => Some(MatPixelType::RGB),
+            NCNN_MAT_PIXEL_RGBA => Some(MatPixelType::RGBA),
+            _ => None,
+        }
+    }
+    pub fn to_int(&self) -> i32 {
         match self {
             MatPixelType::BGR => NCNN_MAT_PIXEL_BGR as _,
             MatPixelType::BGRA => NCNN_MAT_PIXEL_BGRA as _,
@@ -23,7 +33,13 @@ impl MatPixelType {
         }
     }
 
-    fn stride(&self) -> i32 {
+    pub fn convert(&self, other: &Self) -> i32 {
+        // const PIXEL_CONVERT_MASK: u32 = 0xffff0000;
+        const PIXEL_CONVERT_SHIFT: usize = 16;
+        self.to_int() | (other.to_int() << PIXEL_CONVERT_SHIFT)
+    }
+
+    pub fn stride(&self) -> i32 {
         match self {
             MatPixelType::BGR => 3,
             MatPixelType::BGRA => 4,
@@ -213,40 +229,44 @@ impl Mat {
         })
     }
 
-    pub fn substract_mean_normalize(&mut self, mean_vals: &[f32], norm_vals: &[f32]) {
-        let channels = self.c() as usize;
-        assert_eq!(mean_vals.len(), channels);
-        assert_eq!(norm_vals.len(), channels);
-        unsafe {
-            ncnn_mat_substract_mean_normalize(self.ptr, mean_vals.as_ptr(), norm_vals.as_ptr())
-        }
-    }
-
     // https://ncnn.docsforge.com/master/api/ncnn/Mat/from_pixels_resize/
     // https://ncnn.docsforge.com/master/api/ncnn_mat_from_pixels_resize/
     // https://github.com/Tencent/ncnn/blob/13a9533984467890a77acf5e26cc8d01ed157878/src/c_api.cpp#L365
     pub fn from_pixels_resize(
-        pixels: &[u8],
+        data: &[u8],
         pixel_type: i32,
-        img_size: (i32, i32),
+        input_size: (i32, i32),
         stride: i32,
-        model_size: (i32, i32),
-        alloc: &Allocator,
-    ) -> Mat {
-        let (w, h) = img_size;
-        let (model_w, model_h) = model_size;
+        target_size: (i32, i32),
+        alloc: Option<&Allocator>,
+    ) -> anyhow::Result<Mat> {
+        let (w, h) = input_size;
+        let (model_w, model_h) = target_size;
+        // let len = w * h * pixel_type.stride();
+        // if data.len() != len as _ {
+        //     anyhow::bail!("Expected data length {}, provided {}", len, data.len());
+        // }
         unsafe {
             let ptr = ncnn_mat_from_pixels_resize(
-                pixels.as_ptr(),
+                data.as_ptr(),
                 pixel_type,
                 w,
                 h,
                 stride,
                 model_w,
                 model_h,
-                alloc.ptr(),
+                alloc.map(Allocator::ptr).unwrap_or(core::ptr::null_mut()),
             );
-            Mat { ptr }
+            Ok(Mat { ptr })
+        }
+    }
+
+    pub fn substract_mean_normalize(&mut self, mean_vals: &[f32], norm_vals: &[f32]) {
+        let channels = self.c() as usize;
+        assert_eq!(mean_vals.len(), channels);
+        assert_eq!(norm_vals.len(), channels);
+        unsafe {
+            ncnn_mat_substract_mean_normalize(self.ptr, mean_vals.as_ptr(), norm_vals.as_ptr())
         }
     }
 
@@ -309,10 +329,11 @@ impl Mat {
         &mut self.ptr
     }
 
-    /// The impl of C API has used `data` so you can't retrieve the Matrix
-    /// 
+    /// The impl of C API has used `data` so you can't retrieve the Matrix.
+    /// Note that the size of slice is unknown so don't trust `len()`
+    ///
     /// See also [c_api.cpp](https://github.com/Tencent/ncnn/blob/a961ab992e2e4bf1cb950423bd7c2e2d40eb4ea2/src/c_api.cpp#LL375-L378C2).
-    /// 
+    ///
     /// ```c
     /// void* ncnn_mat_get_channel_data(const ncnn_mat_t mat, int c){
     ///    return ((const Mat*)mat)->channel(c).data;
@@ -336,7 +357,7 @@ impl Mat {
         }
     }
 
-    pub fn isize_index_mut(&mut self, idx:isize) -> &mut f32{
+    pub fn isize_index_mut(&mut self, idx: isize) -> &mut f32 {
         let p = self.data() as *mut f32;
         unsafe {
             let p = p.offset(idx as isize);
@@ -370,7 +391,6 @@ impl fmt::Debug for Mat {
 impl Index<usize> for Mat {
     type Output = f32;
     // https://github.com/Tencent/ncnn/blob/5eb56b2ea5a99fb5a3d6f3669ef1743b73a9a53e/src/mat.h#L1343
-    // https://stackoverflow.com/questions/24759028/how-should-you-do-pointer-arithmetic-in-rust
     fn index(&self, idx: usize) -> &Self::Output {
         let p = self.data() as *mut f32;
         unsafe {

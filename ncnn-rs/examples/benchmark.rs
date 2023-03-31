@@ -15,7 +15,7 @@ fn benchmark(name: &str, mut mat_in: Mat, opt: &ncnn_option, out: &str) -> anyho
     let mut mat_out = Mat::new();
     mat_in.fill(1.0 as f32);
 
-    let mut net = Rc::new(RefCell::new(Net::new()));
+    let net = Rc::new(RefCell::new(Net::new()));
     let path = param_path().join("../params").join(name);
     if !path.exists() {
         anyhow::bail!("param not found: {:?}", path)
