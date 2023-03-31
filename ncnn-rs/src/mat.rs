@@ -321,12 +321,12 @@ impl Mat {
         self.ptr
     }
 
-    pub unsafe fn from_ptr(ptr: ncnn_mat_t) -> Self {
-        Self { ptr: ptr }
-    }
-
     pub unsafe fn as_mut_ptr(&mut self) -> *mut ncnn_mat_t {
         &mut self.ptr
+    }
+
+    pub unsafe fn from_ptr(ptr: ncnn_mat_t) -> Self {
+        Self { ptr: ptr }
     }
 
     /// The impl of C API has used `data` so you can't retrieve the Matrix.
@@ -339,19 +339,22 @@ impl Mat {
     ///    return ((const Mat*)mat)->channel(c).data;
     /// }
     /// ```
-    pub unsafe fn channel_data_mut(&self, c: i32) -> &[f32] {
+    pub unsafe fn channel_data(&self, c: i32) -> &[f32] {
         let ptr = ncnn_mat_get_channel_data(self.ptr, c) as *mut f32;
         let len = self.cstep();
         std::slice::from_raw_parts_mut(ptr, len as usize)
     }
-    pub unsafe fn channel_data(&self, c: i32) -> &[f32] {
-        let ptr = ncnn_mat_get_channel_data(self.ptr, c) as *const f32;
-        let len = self.cstep();
-        std::slice::from_raw_parts(ptr, len as usize)
-    }
 
     pub unsafe fn set_ptr(&mut self, ptr: ncnn_mat_t) {
         self.ptr = ptr;
+    }
+
+    pub fn isize_index_mut(&mut self, idx: isize) -> &mut f32 {
+        let p = self.data() as *mut f32;
+        unsafe {
+            let p = p.offset(idx as isize);
+            p.as_mut().unwrap()
+        }
     }
 
     pub fn isize_index(&self, idx: isize) -> &f32 {
@@ -362,12 +365,20 @@ impl Mat {
         }
     }
 
-    pub fn isize_index_mut(&mut self, idx: isize) -> &mut f32 {
-        let p = self.data() as *mut f32;
-        unsafe {
-            let p = p.offset(idx as isize);
-            p.as_mut().unwrap()
-        }
+    pub fn as_slice_mut<T:Sized>(&mut self) -> &mut [T] {
+        let p = self.data() as *mut T;
+        assert!(self.elemsize() % self.elempack() as u64 == 0);
+        assert!(self.elemsize() as usize % std::mem::size_of::<T>() == 0);
+        let len = self.elemsize() / self.elempack() as u64;
+        unsafe { std::slice::from_raw_parts_mut(p, len as usize) }
+    }
+
+    pub fn as_slice<T:Sized>(&self) -> &[T] {
+        let p = self.data() as *mut T;
+        assert!(self.elemsize() % self.elempack() as u64 == 0);
+        assert!(self.elemsize() as usize % std::mem::size_of::<T>() == 0);
+        let len = self.elemsize() / self.elempack() as u64;
+        unsafe { std::slice::from_raw_parts(p, len as usize) }
     }
 }
 
@@ -390,28 +401,6 @@ impl fmt::Debug for Mat {
             .field("elempack", &self.elempack())
             .field("cstep", &self.cstep())
             .finish()
-    }
-}
-
-impl Index<usize> for Mat {
-    type Output = f32;
-    // https://github.com/Tencent/ncnn/blob/5eb56b2ea5a99fb5a3d6f3669ef1743b73a9a53e/src/mat.h#L1343
-    fn index(&self, idx: usize) -> &Self::Output {
-        let p = self.data() as *mut f32;
-        unsafe {
-            let p = p.offset(idx as isize);
-            p.as_ref().unwrap()
-        }
-    }
-}
-
-impl IndexMut<usize> for Mat {
-    fn index_mut(&mut self, idx: usize) -> &mut Self::Output {
-        let p = self.data() as *mut f32;
-        unsafe {
-            let p = p.offset(idx as isize);
-            p.as_mut().unwrap()
-        }
     }
 }
 
