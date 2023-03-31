@@ -153,12 +153,21 @@ fn main() {
             PathBuf::from("/usr/include/ncnn"),
             PathBuf::from("/usr/local/include/ncnn"),
         ];
+        println!("cargo:rustc-link-search=native={}", "/usr/local/lib");
+        println!("cargo:rustc-link-search=native={}", "/usr/lib");
     }
 
+    // have to link stdc++ explicitly
+    // and HAVE to be after ncnn
+    // `openmp-sys` could be helpful as well
     if use_dynamic_linking() {
         println!("cargo:rustc-link-lib=dylib=ncnn");
+        println!("cargo:rustc-link-lib=dylib=gomp");
+        println!("cargo:rustc-link-lib=dylib=stdc++");
     } else {
         println!("cargo:rustc-link-lib=static=ncnn");
+        println!("cargo:rustc-link-lib=static=gomp");
+        println!("cargo:rustc-link-lib=static=stdc++");
     }
 
     if !cfg!(windows) {

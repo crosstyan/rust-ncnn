@@ -21,6 +21,7 @@ build = []
 
 [dependencies]
 libc = "0.2"
+openmp-sys = "1.2.3"
 
 [build-dependencies]
 cmake = "0.1"

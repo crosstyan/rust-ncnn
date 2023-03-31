@@ -4,5 +4,6 @@
 
 // Suppress bindgen test warnings
 #![allow(deref_nullptr)]
+extern crate openmp_sys;
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
