@@ -339,9 +339,10 @@ impl Mat {
     ///    return ((const Mat*)mat)->channel(c).data;
     /// }
     /// ```
-    pub unsafe fn channel_data(&self, c: i32) -> &[f32] {
-        let ptr = ncnn_mat_get_channel_data(self.ptr, c) as *mut f32;
+    pub unsafe fn channel_data<T:Sized>(&self, c: i32) -> &[T] {
+        let ptr = ncnn_mat_get_channel_data(self.ptr, c) as *mut T;
         let len = self.cstep();
+        assert!(self.elemsize() as usize == std::mem::size_of::<T>());
         std::slice::from_raw_parts_mut(ptr, len as usize)
     }
 
@@ -368,7 +369,7 @@ impl Mat {
     pub fn as_slice_mut<T:Sized>(&mut self) -> &mut [T] {
         let p = self.data() as *mut T;
         assert!(self.elemsize() % self.elempack() as u64 == 0);
-        assert!(self.elemsize() as usize % std::mem::size_of::<T>() == 0);
+        assert!(self.elemsize() as usize == std::mem::size_of::<T>());
         let len = self.elemsize() / self.elempack() as u64;
         unsafe { std::slice::from_raw_parts_mut(p, len as usize) }
     }
@@ -376,7 +377,7 @@ impl Mat {
     pub fn as_slice<T:Sized>(&self) -> &[T] {
         let p = self.data() as *mut T;
         assert!(self.elemsize() % self.elempack() as u64 == 0);
-        assert!(self.elemsize() as usize % std::mem::size_of::<T>() == 0);
+        assert!(self.elemsize() as usize == std::mem::size_of::<T>());
         let len = self.elemsize() / self.elempack() as u64;
         unsafe { std::slice::from_raw_parts(p, len as usize) }
     }
